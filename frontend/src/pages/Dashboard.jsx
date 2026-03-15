@@ -85,10 +85,10 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-        <StatCard label="Total Employees"  value={stats?.total_employees ?? 0}        sub={`Across ${stats?.departments ?? 0} department${stats?.departments !== 1 ? 's' : ''}`} />
-        <StatCard label="Present Today"    value={stats?.present_today ?? 0}           sub="Marked present"  valueColor="var(--green)" />
-        <StatCard label="Absent Today"     value={stats?.absent_today ?? 0}            sub="Marked absent"   valueColor="var(--red)" />
-        <StatCard label="Attendance Rate"  value={`${stats?.attendance_rate_today ?? 0}%`} sub={`${stats?.not_marked_today ?? 0} not yet marked`} />
+        <StatCard label="Total Employees" value={stats?.total_employees ?? 0} sub={`Across ${stats?.departments ?? 0} department${stats?.departments !== 1 ? 's' : ''}`} />
+        <StatCard label="Present Today" value={stats?.present_today ?? 0} sub="Marked present" valueColor="var(--green)" />
+        <StatCard label="Absent Today" value={stats?.absent_today ?? 0} sub="Marked absent" valueColor="var(--red)" />
+        <StatCard label="Attendance Rate" value={`${stats?.attendance_rate_today ?? 0}%`} sub={`${stats?.not_marked_today ?? 0} not yet marked`} />
       </div>
 
       {stats?.department_breakdown?.length > 0 && (
