@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { dashboardApi, employeeApi, attendanceApi } from '../api'
+import { dashboardApi, employeeApi, attendanceApi, toList } from '../api'
 import { StatCard, Avatar, Badge, DeptTag, TableWrap, Th, Td, Spinner, EmptyState, Button, PlusIcon } from '../components/ui'
 import { MarkAttendanceModal } from '../components/MarkAttendanceModal'
 import { useToast } from '../hooks/useToast'
@@ -28,17 +28,10 @@ export default function Dashboard() {
         attendanceApi.list({ date: today }),
         employeeApi.list(),
       ])
-
       setStats(s)
-
-      // Handle both {results: [...]} and plain [...] response shapes
-      const empList = Array.isArray(emps) ? emps : (emps?.results || [])
-      const attList = Array.isArray(att) ? att : (att?.results || [])
-      const allEmpList = Array.isArray(allEmps) ? allEmps : (allEmps?.results || [])
-
-      setRecentEmps(empList.slice(0, 5))
-      setTodayAtt(attList.slice(0, 6))
-      setEmployees(allEmpList)
+      setRecentEmps(toList(emps).slice(0, 5))
+      setTodayAtt(toList(att).slice(0, 6))
+      setEmployees(toList(allEmps))
     } catch (e) {
       console.error('Dashboard load error:', e)
       setError(e.message)
@@ -91,43 +84,19 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-        <StatCard
-          label="Total Employees"
-          value={stats?.total_employees ?? 0}
-          sub={`Across ${stats?.departments ?? 0} department${stats?.departments !== 1 ? 's' : ''}`}
-        />
-        <StatCard
-          label="Present Today"
-          value={stats?.present_today ?? 0}
-          sub="Marked present"
-          valueColor="var(--green)"
-        />
-        <StatCard
-          label="Absent Today"
-          value={stats?.absent_today ?? 0}
-          sub="Marked absent"
-          valueColor="var(--red)"
-        />
-        <StatCard
-          label="Attendance Rate"
-          value={`${stats?.attendance_rate_today ?? 0}%`}
-          sub={`${stats?.not_marked_today ?? 0} not yet marked`}
-        />
+        <StatCard label="Total Employees"  value={stats?.total_employees ?? 0}        sub={`Across ${stats?.departments ?? 0} department${stats?.departments !== 1 ? 's' : ''}`} />
+        <StatCard label="Present Today"    value={stats?.present_today ?? 0}           sub="Marked present"  valueColor="var(--green)" />
+        <StatCard label="Absent Today"     value={stats?.absent_today ?? 0}            sub="Marked absent"   valueColor="var(--red)" />
+        <StatCard label="Attendance Rate"  value={`${stats?.attendance_rate_today ?? 0}%`} sub={`${stats?.not_marked_today ?? 0} not yet marked`} />
       </div>
 
-      {/* Department breakdown */}
       {stats?.department_breakdown?.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Department overview</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {stats.department_breakdown.map(d => (
-              <div key={d.department} style={{
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                borderRadius: 'var(--radius)', padding: '8px 14px',
-                display: 'flex', alignItems: 'center', gap: 8, boxShadow: 'var(--shadow)',
-              }}>
+              <div key={d.department} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, boxShadow: 'var(--shadow)' }}>
                 <span style={{ fontFamily: 'var(--fm)', fontSize: 12.5, color: 'var(--text2)' }}>{d.department}</span>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{d.count}</span>
               </div>
@@ -136,9 +105,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Bottom grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-        {/* Recent Employees */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 600 }}>Recent employees</span>
@@ -150,11 +117,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <TableWrap>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <Th>Employee</Th><Th>Dept</Th>
-                </tr>
-              </thead>
+              <thead><tr style={{ borderBottom: '1px solid var(--border)' }}><Th>Employee</Th><Th>Dept</Th></tr></thead>
               <tbody>
                 {recentEmps.map(emp => (
                   <tr key={emp.id}>
@@ -175,7 +138,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Today's Attendance */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 600 }}>Today's attendance</span>
@@ -187,11 +149,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <TableWrap>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <Th>Employee</Th><Th>Status</Th>
-                </tr>
-              </thead>
+              <thead><tr style={{ borderBottom: '1px solid var(--border)' }}><Th>Employee</Th><Th>Status</Th></tr></thead>
               <tbody>
                 {todayAtt.map(att => (
                   <tr key={att.id}>
@@ -201,9 +159,7 @@ export default function Dashboard() {
                         <span style={{ fontWeight: 500, fontSize: 13.5 }}>{att.employee_name}</span>
                       </div>
                     </Td>
-                    <Td>
-                      <Badge variant={att.status === 'Present' ? 'green' : 'red'}>{att.status}</Badge>
-                    </Td>
+                    <Td><Badge variant={att.status === 'Present' ? 'green' : 'red'}>{att.status}</Badge></Td>
                   </tr>
                 ))}
               </tbody>
@@ -212,13 +168,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <MarkAttendanceModal
-        open={attModal}
-        onClose={() => setAttModal(false)}
-        onSave={handleMarkAtt}
-        employees={employees}
-        loading={attLoading}
-      />
+      <MarkAttendanceModal open={attModal} onClose={() => setAttModal(false)} onSave={handleMarkAtt} employees={employees} loading={attLoading} />
     </div>
   )
 }
