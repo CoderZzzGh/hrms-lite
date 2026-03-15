@@ -1,4 +1,4 @@
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const BASE_URL = 'https://hrms-lite-rwne.onrender.com'
 
 async function request(method, path, body) {
   const opts = {
