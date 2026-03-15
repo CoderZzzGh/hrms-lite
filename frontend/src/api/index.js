@@ -25,7 +25,6 @@ async function request(method, path, body) {
   return data
 }
 
-// Safe list helper — always returns an array no matter what the API returns
 export function toList(data) {
   if (Array.isArray(data)) return data
   if (data && Array.isArray(data.results)) return data.results
@@ -33,13 +32,12 @@ export function toList(data) {
 }
 
 export const api = {
-  get:    (path)        => request('GET',    path),
-  post:   (path, body)  => request('POST',   path, body),
-  patch:  (path, body)  => request('PATCH',  path, body),
-  delete: (path)        => request('DELETE', path),
+  get:    (path)       => request('GET',    path),
+  post:   (path, body) => request('POST',   path, body),
+  patch:  (path, body) => request('PATCH',  path, body),
+  delete: (path)       => request('DELETE', path),
 }
 
-// ─── Employees ────────────────────────────────────────────────────────────────
 export const employeeApi = {
   list: (params = {}) => {
     const qs = new URLSearchParams(params).toString()
@@ -50,18 +48,16 @@ export const employeeApi = {
   delete: (id)   => api.delete(`/employees/${id}/`),
 }
 
-// ─── Attendance ───────────────────────────────────────────────────────────────
 export const attendanceApi = {
   list: (params = {}) => {
     const qs = new URLSearchParams(params).toString()
     return api.get(`/attendance/${qs ? '?' + qs : ''}`)
   },
-  mark:   (data)       => api.post('/attendance/', data),
-  update: (id, data)   => api.patch(`/attendance/${id}/`, data),
-  delete: (id)         => api.delete(`/attendance/${id}/`),
+  mark:   (data)     => api.post('/attendance/', data),
+  update: (id, data) => api.patch(`/attendance/${id}/`, data),
+  delete: (id)       => api.delete(`/attendance/${id}/`),
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
 export const dashboardApi = {
   stats: () => api.get('/dashboard/'),
 }
