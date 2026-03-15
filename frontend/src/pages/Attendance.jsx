@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { attendanceApi, employeeApi } from '../api'
 import {
   Avatar, Badge, Button, TableWrap, Th, Td,
-  EmptyState, Spinner, StatCard, ProgressBar, PlusIcon, TrashIcon,
+  EmptyState, Spinner, StatCard, ProgressBar, TrashIcon,
 } from '../components/ui'
 import { MarkAttendanceModal } from '../components/MarkAttendanceModal'
 import { useToast } from '../hooks/useToast'
@@ -20,8 +20,13 @@ export default function Attendance() {
   const { show } = useToast()
 
   const loadEmployees = async () => {
-    const data = await employeeApi.list()
-    setEmployees(data.results)
+    try {
+      const data = await employeeApi.list()
+      const list = Array.isArray(data) ? data : (data?.results || [])
+      setEmployees(list)
+    } catch (e) {
+      console.error('Failed to load employees:', e)
+    }
   }
 
   const load = useCallback(async () => {
@@ -32,8 +37,10 @@ export default function Attendance() {
       if (dateFilter) params.date = dateFilter
       if (statusFilter) params.status = statusFilter
       const data = await attendanceApi.list(params)
-      setRecords(data.results)
+      const list = Array.isArray(data) ? data : (data?.results || [])
+      setRecords(list)
     } catch (e) {
+      console.error('Attendance load error:', e)
       setError(e.message)
     } finally {
       setLoading(false)
@@ -69,18 +76,14 @@ export default function Attendance() {
     }
   }
 
-  // Per-employee summary when filtered
-  const selectedEmp = empFilter ? employees.find(e => String(e.id) === empFilter) : null
   const empRecords = empFilter ? records : []
   const present = empRecords.filter(r => r.status === 'Present').length
   const absent = empRecords.filter(r => r.status === 'Absent').length
   const rate = empRecords.length ? Math.round(present / empRecords.length * 100) : 0
+  const selectedEmp = empFilter ? employees.find(e => String(e.id) === String(empFilter)) : null
 
-  const fmtDate = (d) => {
-    const dt = new Date(d + 'T00:00:00')
-    return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-  }
-  const fmtDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' })
+  const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  const fmtDay  = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' })
 
   const inputStyle = {
     padding: '7px 10px', border: '1px solid var(--border)',
@@ -92,40 +95,23 @@ export default function Attendance() {
     <div style={{ padding: '24px 28px' }}>
       {/* Filter Bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-        <select
-          value={empFilter}
-          onChange={e => setEmpFilter(e.target.value)}
-          style={{ ...inputStyle, minWidth: 180 }}
-        >
+        <select value={empFilter} onChange={e => setEmpFilter(e.target.value)} style={{ ...inputStyle, minWidth: 180 }}>
           <option value="">All employees</option>
           {employees.map(e => (
             <option key={e.id} value={e.id}>{e.full_name} ({e.employee_id})</option>
           ))}
         </select>
 
-        <input
-          type="date"
-          value={dateFilter}
-          onChange={e => setDateFilter(e.target.value)}
-          style={inputStyle}
-        />
+        <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={inputStyle} />
 
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          style={inputStyle}
-        >
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={inputStyle}>
           <option value="">All statuses</option>
           <option value="Present">Present</option>
           <option value="Absent">Absent</option>
         </select>
 
         {(empFilter || dateFilter || statusFilter) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setEmpFilter(''); setDateFilter(''); setStatusFilter('') }}
-          >
+          <Button variant="ghost" size="sm" onClick={() => { setEmpFilter(''); setDateFilter(''); setStatusFilter('') }}>
             Clear filters
           </Button>
         )}
@@ -180,20 +166,14 @@ export default function Attendance() {
               >
                 <Td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <Avatar name={att.employee_name} size={28} />
-                    <span style={{ fontWeight: 500, fontSize: 13.5 }}>{att.employee_name}</span>
+                    <Avatar name={att.employee_name || 'Unknown'} size={28} />
+                    <span style={{ fontWeight: 500, fontSize: 13.5 }}>{att.employee_name || '—'}</span>
                   </div>
                 </Td>
-                <Td>
-                  <span style={{ fontFamily: 'var(--fm)', fontSize: 13, color: 'var(--text2)' }}>{att.employee_id}</span>
-                </Td>
-                <Td>
-                  <span style={{ fontFamily: 'var(--fm)', fontSize: 13 }}>{fmtDate(att.date)}</span>
-                </Td>
+                <Td><span style={{ fontFamily: 'var(--fm)', fontSize: 13, color: 'var(--text2)' }}>{att.employee_id}</span></Td>
+                <Td><span style={{ fontFamily: 'var(--fm)', fontSize: 13 }}>{fmtDate(att.date)}</span></Td>
                 <Td style={{ color: 'var(--text3)', fontSize: 13 }}>{fmtDay(att.date)}</Td>
-                <Td>
-                  <Badge variant={att.status === 'Present' ? 'green' : 'red'}>{att.status}</Badge>
-                </Td>
+                <Td><Badge variant={att.status === 'Present' ? 'green' : 'red'}>{att.status}</Badge></Td>
                 <Td style={{ textAlign: 'right' }}>
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(att.id)}>
                     <TrashIcon />
@@ -226,3 +206,8 @@ function MarkTrigger({ onOpen }) {
   }, [onOpen])
   return null
 }
+                          
+
+
+
+

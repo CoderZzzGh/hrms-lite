@@ -28,11 +28,19 @@ export default function Dashboard() {
         attendanceApi.list({ date: today }),
         employeeApi.list(),
       ])
+
       setStats(s)
-      setRecentEmps(emps.results.slice(0, 5))
-      setTodayAtt(att.results.slice(0, 6))
-      setEmployees(allEmps.results)
+
+      // Handle both {results: [...]} and plain [...] response shapes
+      const empList = Array.isArray(emps) ? emps : (emps?.results || [])
+      const attList = Array.isArray(att) ? att : (att?.results || [])
+      const allEmpList = Array.isArray(allEmps) ? allEmps : (allEmps?.results || [])
+
+      setRecentEmps(empList.slice(0, 5))
+      setTodayAtt(attList.slice(0, 6))
+      setEmployees(allEmpList)
     } catch (e) {
+      console.error('Dashboard load error:', e)
       setError(e.message)
     } finally {
       setLoading(false)
@@ -85,18 +93,32 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-        <StatCard label="Total Employees" value={stats.total_employees} sub={`Across ${stats.departments} department${stats.departments !== 1 ? 's' : ''}`} />
-        <StatCard label="Present Today" value={stats.present_today} sub="Marked present" valueColor="var(--green)" />
-        <StatCard label="Absent Today" value={stats.absent_today} sub="Marked absent" valueColor="var(--red)" />
+        <StatCard
+          label="Total Employees"
+          value={stats?.total_employees ?? 0}
+          sub={`Across ${stats?.departments ?? 0} department${stats?.departments !== 1 ? 's' : ''}`}
+        />
+        <StatCard
+          label="Present Today"
+          value={stats?.present_today ?? 0}
+          sub="Marked present"
+          valueColor="var(--green)"
+        />
+        <StatCard
+          label="Absent Today"
+          value={stats?.absent_today ?? 0}
+          sub="Marked absent"
+          valueColor="var(--red)"
+        />
         <StatCard
           label="Attendance Rate"
-          value={`${stats.attendance_rate_today}%`}
-          sub={`${stats.not_marked_today} not yet marked`}
+          value={`${stats?.attendance_rate_today ?? 0}%`}
+          sub={`${stats?.not_marked_today ?? 0} not yet marked`}
         />
       </div>
 
       {/* Department breakdown */}
-      {stats.department_breakdown?.length > 0 && (
+      {stats?.department_breakdown?.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Department overview</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { employeeApi } from '../api'
 import {
-  Avatar, Badge, DeptTag, Button, TableWrap, Th, Td,
-  EmptyState, Spinner, ProgressBar, PlusIcon, TrashIcon, SearchIcon,
+  Avatar, DeptTag, Button, TableWrap, Th, Td,
+  EmptyState, Spinner, ProgressBar, TrashIcon, SearchIcon,
 } from '../components/ui'
 import { AddEmployeeModal } from '../components/AddEmployeeModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
@@ -18,7 +18,7 @@ export default function Employees() {
   const [deptFilter, setDeptFilter] = useState('')
   const [addModal, setAddModal] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
-  const [delModal, setDelModal] = useState(null) // {id, name}
+  const [delModal, setDelModal] = useState(null)
   const [delLoading, setDelLoading] = useState(false)
   const { show } = useToast()
 
@@ -29,8 +29,11 @@ export default function Employees() {
       if (search) params.search = search
       if (deptFilter) params.dept = deptFilter
       const data = await employeeApi.list(params)
-      setEmployees(data.results)
+      // Handle both {results: [...]} and plain [...] shapes
+      const list = Array.isArray(data) ? data : (data?.results || [])
+      setEmployees(list)
     } catch (e) {
+      console.error('Employees load error:', e)
       setError(e.message)
     } finally {
       setLoading(false)
@@ -75,7 +78,6 @@ export default function Employees() {
 
   return (
     <div style={{ padding: '24px 28px' }}>
-      {/* Filter Bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 300 }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }}>
@@ -112,7 +114,8 @@ export default function Employees() {
         </div>
       ) : error ? (
         <div style={{ background: 'var(--red-bg)', border: '1px solid var(--red-border)', borderRadius: 'var(--radius)', padding: '14px 18px', color: 'var(--red-text)', fontSize: 13.5 }}>
-          {error} <button onClick={load} style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--red-text)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>Retry</button>
+          {error}
+          <button onClick={load} style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--red-text)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>Retry</button>
         </div>
       ) : employees.length === 0 ? (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow)' }}>
@@ -135,7 +138,7 @@ export default function Employees() {
           </thead>
           <tbody>
             {employees.map(emp => (
-              <tr key={emp.id} style={{ transition: 'background 0.1s' }}
+              <tr key={emp.id}
                 onMouseEnter={e => e.currentTarget.style.background = '#FAFAF8'}
                 onMouseLeave={e => e.currentTarget.style.background = ''}
               >
@@ -151,7 +154,7 @@ export default function Employees() {
                 <Td style={{ color: 'var(--text2)' }}>{emp.email}</Td>
                 <Td><DeptTag>{emp.department}</DeptTag></Td>
                 <Td>
-                  {emp.attendance_rate !== null ? (
+                  {emp.attendance_rate !== null && emp.attendance_rate !== undefined ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 100 }}>
                       <span style={{ fontSize: 12, color: 'var(--text2)', minWidth: 30 }}>{emp.attendance_rate}%</span>
                       <ProgressBar value={emp.attendance_rate} />
@@ -191,13 +194,11 @@ export default function Employees() {
         loading={delLoading}
       />
 
-      {/* Expose add modal trigger to topbar via global */}
       <AddTrigger onOpen={() => setAddModal(true)} />
     </div>
   )
 }
 
-// Registers a global so the Topbar action button can open the modal
 function AddTrigger({ onOpen }) {
   useEffect(() => {
     window.__openAddEmployee = onOpen
